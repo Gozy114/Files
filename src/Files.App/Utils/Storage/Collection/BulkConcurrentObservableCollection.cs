@@ -134,6 +134,10 @@ namespace Files.App.Utils.Storage
 		{
 		}
 
+		protected virtual void OnMoved()
+		{
+		}
+
 		public virtual void EndBulkOperation()
 		{
 			lock (syncRoot)
@@ -301,8 +305,7 @@ namespace Files.App.Utils.Storage
 				OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, item, newIndex, oldIndex), false);
 			}
 
-			if (IsGrouped)
-				ResetGroups();
+			OnMoved();
 		}
 
 		public void AddRange(IEnumerable<T> items)
