@@ -33,7 +33,7 @@ namespace Files.App.Data.Models
 			return new SyncSuspensionScope(this);
 		}
 
-		private sealed class SyncSuspensionScope(PinnedFoldersManager owner) : IDisposable
+		private sealed partial class SyncSuspensionScope(PinnedFoldersManager owner) : IDisposable
 		{
 			private int _disposed;
 

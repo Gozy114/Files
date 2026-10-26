@@ -12,7 +12,7 @@ namespace Files.App.Services.Search
 	/// SDK2 keeps a single process-global query, so overlapping calls mix results and can overflow.
 	/// Everything 1.5 folder size is used only when an Everything3 DLL is already installed.
 	/// </summary>
-	public sealed unsafe class EverythingService : IEverythingService, IDisposable
+	public sealed unsafe partial class EverythingService : IEverythingService, IDisposable
 	{
 		private const uint EverythingErrorIpc = 2;
 
