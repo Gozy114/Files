@@ -14,7 +14,7 @@ Do not open a pull request against `files-community/Files`. After each task (or 
 
 - [x] **T4b. Clear selection shortcut.** Give `ClearSelectionAction` a default `HotKey` of Escape, the same way `SelectAllAction` and `ToggleSelectAction` set `HotKey`, so it shows in the keyboard shortcuts list and Esc clears the selection.
 
-- [ ] **T5. windows-latest workflow.** Add `.github/workflows/fork-debug-build.yml` that, on `push` and `pull_request`, restores `Files.slnx` and builds `src/Files.App/Files.App.csproj` Debug x64 on `windows-latest` with packaging turned off. No `files-community` owner guard. No Everything functional test.
+- [x] **T5. windows-latest workflow.** Add `.github/workflows/fork-debug-build.yml` that, on `push` and `pull_request`, restores `Files.slnx` and builds `src/Files.App/Files.App.csproj` Debug x64 on `windows-latest` with packaging turned off. No `files-community` owner guard. No Everything functional test.
 
 - [ ] **T6. CI green.** Push, read the Actions log, and fix this branch until the Debug build passes. If the runner cannot supply the toolchain, record that blocker in `SPEC.md` and stop retrying.
 

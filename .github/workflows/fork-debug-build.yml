@@ -1,0 +1,58 @@
+# Copyright (c) Files Community
+# Licensed under the MIT License.
+
+# Compile check for this fork. GitHub-hosted runners have no Everything service,
+# so a green run only means the Debug build succeeded.
+
+name: Fork Debug build
+
+on:
+  push:
+  pull_request:
+
+env:
+  SOLUTION_PATH: '${{ github.workspace }}\Files.slnx'
+  APP_PROJECT_PATH: '${{ github.workspace }}\src\Files.App\Files.App.csproj'
+
+jobs:
+
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+
+    - name: Checkout the repository
+      uses: actions/checkout@v6
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v3
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        global-json-file: global.json
+
+    - name: Restore Files
+      shell: pwsh
+      run: |
+        msbuild $env:SOLUTION_PATH `
+          -t:Restore `
+          -p:Platform=x64 `
+          -p:Configuration=Debug `
+          -p:PublishReadyToRun=true `
+          -v:quiet
+
+    - name: Build Files
+      shell: pwsh
+      run: |
+        msbuild `
+          -warnaserror `
+          -warnnotaserror:CS0612,CS0618,CS0672,IL2104 `
+          $env:APP_PROJECT_PATH `
+          -t:Build `
+          -p:Configuration=Debug `
+          -p:Platform=x64 `
+          -p:AppxBundle=Never `
+          -p:GenerateAppxPackageOnBuild=false `
+          -v:quiet
