@@ -63,20 +63,35 @@ jobs:
       id: stage
       shell: pwsh
       run: |
-        $exe = Get-ChildItem -Path (Join-Path $env:GITHUB_WORKSPACE 'src\Files.App\bin') -Recurse -Filter Files.exe |
-          Where-Object {
-            $_.FullName -notmatch '\\obj\\|\\ref\\' -and
-            (Test-Path (Join-Path $_.DirectoryName 'Everything64.dll'))
-          } |
-          Select-Object -First 1
-        if (-not $exe) {
-          throw 'Files.exe was not next to Everything64.dll in the unpackaged build output.'
+        $bin = Join-Path $env:GITHUB_WORKSPACE 'src\Files.App\bin'
+        Get-ChildItem -Path $bin -Recurse -Include Files.exe,Everything32.dll,Everything64.dll,EverythingARM64.dll -ErrorAction SilentlyContinue |
+          ForEach-Object { Write-Host $_.FullName }
+
+        $output = $null
+        $exes = Get-ChildItem -Path $bin -Recurse -Filter Files.exe |
+          Where-Object { $_.FullName -notmatch '\\obj\\|\\ref\\' }
+        foreach ($candidate in $exes) {
+          $dir = $candidate.Directory
+          while ($null -ne $dir -and $dir.FullName.StartsWith($bin, [StringComparison]::OrdinalIgnoreCase)) {
+            $dll = Get-ChildItem -Path $dir.FullName -Recurse -Filter Everything64.dll -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($null -ne $dll -and $dir.FullName -ne $bin) {
+              $output = $dir.FullName
+              break
+            }
+            if ($dir.FullName -eq $bin) { break }
+            $dir = $dir.Parent
+          }
+          if ($null -ne $output) { break }
+        }
+        if (-not $output) {
+          throw 'Files.exe and Everything64.dll were not in the same unpackaged build folder.'
         }
 
         $stage = Join-Path $env:GITHUB_WORKSPACE 'portable-stage'
         if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
         New-Item -ItemType Directory -Path $stage | Out-Null
-        Copy-Item -Path (Join-Path $exe.DirectoryName '*') -Destination $stage -Recurse
+        Copy-Item -Path (Join-Path $output '*') -Destination $stage -Recurse
 
         @(
           'Files portable x64 (unpackaged Debug build).'
@@ -97,7 +112,7 @@ jobs:
           '"Use Everything for search and folder sizes" and voidtools Everything is running.'
         ) | Set-Content -Path (Join-Path $stage 'README.txt') -Encoding utf8
 
-        Write-Host "Staged $($exe.DirectoryName)"
+        Write-Host "Staged $output"
         "dir=$stage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
     - name: Upload portable build
