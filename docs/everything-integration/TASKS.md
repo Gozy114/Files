@@ -18,4 +18,4 @@ Do not open a pull request against `files-community/Files`. After each task (or 
 
 - [x] **T6. CI green.** Push, read the Actions log, and fix this branch until the Debug build passes. If the runner cannot supply the toolchain, record that blocker in `SPEC.md` and stop retrying.
 
-- [ ] **T7. PR on the fork.** Open a pull request on `Gozy114/Files` with base `main`. Describe what was ported, the settings toggle, the known limitations, and how to open the Actions run. Do not open or retarget a PR to `files-community/Files`.
+- [x] **T7. PR on the fork.** Open a pull request on `Gozy114/Files` with base `main`. Describe what was ported, the settings toggle, the known limitations, and how to open the Actions run. Do not open or retarget a PR to `files-community/Files`.
