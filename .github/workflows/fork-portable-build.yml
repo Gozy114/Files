@@ -1,0 +1,109 @@
+# Copyright (c) Files Community
+# Licensed under the MIT License.
+
+# Unpackaged x64 build for this fork. The artifact is a zip of the Files.exe
+# output folder. It is not an MSIX and it is not signed.
+
+name: Fork portable build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cursor/everything-search-folder-size-4681
+
+env:
+  SOLUTION_PATH: '${{ github.workspace }}\Files.slnx'
+  APP_PROJECT_PATH: '${{ github.workspace }}\src\Files.App\Files.App.csproj'
+
+jobs:
+
+  package:
+
+    runs-on: windows-latest
+
+    steps:
+
+    - name: Checkout the repository
+      uses: actions/checkout@v6
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v3
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        global-json-file: global.json
+
+    - name: Restore Files
+      shell: pwsh
+      run: |
+        msbuild $env:SOLUTION_PATH `
+          -t:Restore `
+          -p:Platform=x64 `
+          -p:Configuration=Debug `
+          -p:PublishReadyToRun=true `
+          -v:quiet
+
+    - name: Build unpackaged Files
+      shell: pwsh
+      run: |
+        msbuild `
+          -warnaserror `
+          -warnnotaserror:CS0612,CS0618,CS0672,IL2104 `
+          $env:APP_PROJECT_PATH `
+          -t:Build `
+          -p:Configuration=Debug `
+          -p:Platform=x64 `
+          -p:AppxBundle=Never `
+          -p:GenerateAppxPackageOnBuild=false `
+          -v:quiet
+
+    - name: Stage portable output
+      id: stage
+      shell: pwsh
+      run: |
+        $exe = Get-ChildItem -Path (Join-Path $env:GITHUB_WORKSPACE 'src\Files.App\bin') -Recurse -Filter Files.exe |
+          Where-Object {
+            $_.FullName -notmatch '\\obj\\|\\ref\\' -and
+            (Test-Path (Join-Path $_.DirectoryName 'Everything64.dll'))
+          } |
+          Select-Object -First 1
+        if (-not $exe) {
+          throw 'Files.exe was not next to Everything64.dll in the unpackaged build output.'
+        }
+
+        $stage = Join-Path $env:GITHUB_WORKSPACE 'portable-stage'
+        if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+        New-Item -ItemType Directory -Path $stage | Out-Null
+        Copy-Item -Path (Join-Path $exe.DirectoryName '*') -Destination $stage -Recurse
+
+        @(
+          'Files portable x64 (unpackaged Debug build).'
+          ''
+          'Unzip this folder and run Files.exe. This is not an MSIX.'
+          'Do not install a certificate and do not use Add-AppxPackage.'
+          ''
+          'The project builds framework-dependent. Microsoft.WindowsAppSDK 2.5.1 is referenced,'
+          'and the executable links Microsoft.WindowsAppRuntime.Bootstrap. The Windows App Runtime'
+          'itself is not copied into this folder. The .NET 10 desktop runtime is not bundled either.'
+          'Install both before starting Files.exe:'
+          ''
+          '1. .NET 10 Desktop Runtime, x64: https://dotnet.microsoft.com/download/dotnet/10.0'
+          '2. Windows App Runtime 2.5, x64 (the runtime for Windows App SDK 2.5):'
+          '   https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads'
+          ''
+          'Everything search and folder sizes stay off until you enable'
+          '"Use Everything for search and folder sizes" and voidtools Everything is running.'
+        ) | Set-Content -Path (Join-Path $stage 'README.txt') -Encoding utf8
+
+        Write-Host "Staged $($exe.DirectoryName)"
+        "dir=$stage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    - name: Upload portable build
+      uses: actions/upload-artifact@v7
+      with:
+        name: Files-portable-x64
+        path: ${{ steps.stage.outputs.dir }}
+        if-no-files-found: error
+        compression-level: 6
