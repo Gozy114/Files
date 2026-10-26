@@ -20,6 +20,9 @@ namespace Files.App.Actions
 		public RichGlyph Glyph
 			=> new(themedIconStyle: "App.ThemedIcons.SelectNone");
 
+		public HotKey HotKey
+			=> new(Keys.Escape);
+
 		public bool IsExecutable
 		{
 			get

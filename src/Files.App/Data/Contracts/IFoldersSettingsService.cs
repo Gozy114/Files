@@ -51,6 +51,11 @@ namespace Files.App.Data.Contracts
 		bool CalculateFolderSizes { get; set; }
 
 		/// <summary>
+		/// Gets or sets a value indicating whether Everything is used for search and folder sizes when it is running.
+		/// </summary>
+		bool UseEverything { get; set; }
+
+		/// <summary>
 		/// Gets or sets a value indicating whether or not to scroll to the parent folder when navigating up.
 		/// </summary>
 		bool ScrollToPreviousFolderWhenNavigatingUp { get; set; }

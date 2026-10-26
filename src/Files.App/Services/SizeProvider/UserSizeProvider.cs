@@ -1,6 +1,7 @@
 // Copyright (c) Files Community
 // Licensed under the MIT License.
 
+using Files.App.Services.Search;
 using Files.App.Services.SizeProvider;
 
 namespace Files.App.Services
@@ -41,14 +42,31 @@ namespace Files.App.Services
 		}
 
 		private ISizeProvider GetProvider()
-			=> new DrivesSizeProvider();
+		{
+			if (!folderPreferences.UseEverything)
+				return new DrivesSizeProvider();
+
+			try
+			{
+				var everything = Ioc.Default.GetRequiredService<IEverythingService>();
+				if (everything.IsAvailableAsync().GetAwaiter().GetResult())
+					return new EverythingSizeProvider(everything);
+			}
+			catch (Exception)
+			{
+				// The probe failed. Keep the filesystem size provider.
+			}
+
+			return new DrivesSizeProvider();
+		}
 
 		private async void FolderPreferences_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 		{
-			if (e.PropertyName is nameof(IFoldersSettingsService.CalculateFolderSizes))
+			if (e.PropertyName is nameof(IFoldersSettingsService.CalculateFolderSizes) or nameof(IFoldersSettingsService.UseEverything))
 			{
 				await provider.ClearAsync();
 				provider.SizeChanged -= Provider_SizeChanged;
+				provider.Dispose();
 				provider = GetProvider();
 				provider.SizeChanged += Provider_SizeChanged;
 			}

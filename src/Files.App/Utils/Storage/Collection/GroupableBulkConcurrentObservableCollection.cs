@@ -48,6 +48,12 @@ namespace Files.App.Utils.Storage
 			GroupedCollection?.Clear();
 		}
 
+		protected override void OnMoved()
+		{
+			if (IsGrouped)
+				ResetGroups();
+		}
+
 		protected override void UpdateGroups(NotifyCollectionChangedEventArgs e)
 		{
 			if (IsGrouped)

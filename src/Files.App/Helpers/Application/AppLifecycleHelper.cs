@@ -3,6 +3,7 @@
 
 using Files.App.Helpers.Application;
 using Files.App.Services.Git;
+using Files.App.Services.Search;
 using Files.App.Services.SizeProvider;
 using Files.App.Utils.Logger;
 using Files.App.ViewModels.Settings;
@@ -359,6 +360,7 @@ namespace Files.App.Helpers
 					.AddSingleton<IDateTimeFormatterFactory, DateTimeFormatterFactory>()
 					.AddSingleton<IDateTimeFormatter, UserDateTimeFormatter>()
 					.AddSingleton<ISizeProvider, UserSizeProvider>()
+					.AddSingleton<IEverythingService, EverythingService>()
 					.AddSingleton<IQuickAccessService, QuickAccessService>()
 					.AddSingleton<IResourcesService, ResourcesService>()
 					.AddSingleton<IWindowsJumpListService, WindowsJumpListService>()

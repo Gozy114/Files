@@ -1,6 +1,7 @@
 // Copyright (c) Files Community
 // Licensed under the MIT License.
 
+using Files.App.Services.Search;
 using Files.Shared.Helpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
@@ -92,17 +93,20 @@ namespace Files.App.Utils.Storage
 		{
 			try
 			{
-				if (App.LibraryManager.TryGetLibrary(Folder, out var library))
+				if (!await TrySearchWithEverythingAsync(results, token))
 				{
-					await AddItemsForLibraryAsync(library, results, token);
-				}
-				else if (Folder == "Home")
-				{
-					await AddItemsForHomeAsync(results, token);
-				}
-				else
-				{
-					await AddItemsAsync(Folder ?? throw new InvalidOperationException("The search folder has not been set."), results, token);
+					if (App.LibraryManager.TryGetLibrary(Folder, out var library))
+					{
+						await AddItemsForLibraryAsync(library, results, token);
+					}
+					else if (Folder == "Home")
+					{
+						await AddItemsForHomeAsync(results, token);
+					}
+					else
+					{
+						await AddItemsAsync(Folder ?? throw new InvalidOperationException("The search folder has not been set."), results, token);
+					}
 				}
 			}
 			catch (OperationCanceledException)
@@ -128,6 +132,150 @@ namespace Files.App.Utils.Storage
 			{
 				App.Logger.LogWarning(e, "Failed to finalize search results");
 			}
+		}
+
+		private async Task<bool> TrySearchWithEverythingAsync(IList<ListedItem> results, CancellationToken token)
+		{
+			if (!UserSettingsService.FoldersSettingsService.UseEverything)
+				return false;
+
+			if (IsTagQuery(AQSQuery) || IsAQSQuery || string.IsNullOrWhiteSpace(Query) || Folder is null)
+				return false;
+
+			if (App.LibraryManager.TryGetLibrary(Folder, out _))
+				return false;
+
+			IEverythingService everything;
+			try
+			{
+				everything = Ioc.Default.GetRequiredService<IEverythingService>();
+				if (!await everything.IsAvailableAsync(token))
+					return false;
+
+				var maxResults = MaxItemCount == 0 ? 1000 : (int)Math.Min(MaxItemCount, 1000);
+				var hits = await everything.SearchAsync(Query, Folder, maxResults, token);
+				foreach (var hit in hits)
+				{
+					if (token.IsCancellationRequested || results.Count >= UsedMaxItemCount)
+						break;
+
+					if (CreateEverythingItem(hit) is { } item)
+						AddResult(results, item, token);
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
+			catch (Exception ex)
+			{
+				logger.LogWarning(ex, "Everything search failed");
+				return results.Count > 0;
+			}
+
+			if (results.Count == 0)
+				return false;
+
+			if (!token.IsCancellationRequested && pendingResults.Count > 0)
+			{
+				var batch = pendingResults;
+				pendingResults = [];
+				hasRaisedTick = true;
+				SearchTick?.Invoke(this, batch);
+			}
+
+			return true;
+		}
+
+		private ListedItem? CreateEverythingItem(EverythingSearchHit hit)
+		{
+			if (string.IsNullOrEmpty(hit.Name) || string.IsNullOrEmpty(hit.FullPath))
+				return null;
+
+			if (hit.IsHidden && !UserSettingsService.FoldersSettingsService.ShowHiddenItems)
+				return null;
+
+			if (hit.Name.StartsWith('.') && !UserSettingsService.FoldersSettingsService.ShowDotFiles)
+				return null;
+
+			var opacity = hit.IsHidden ? Constants.UI.DimItemOpacity : 1;
+			if (hit.IsFolder)
+			{
+				var folder = new ListedItem(null)
+				{
+					PrimaryItemAttribute = StorageItemTypes.Folder,
+					ItemNameRaw = hit.Name,
+					ItemPath = hit.FullPath,
+					IsHiddenItem = hit.IsHidden,
+					LoadFileIcon = false,
+					ItemType = folderTypeTextLocalized,
+					Opacity = opacity,
+				};
+				ApplyEverythingDates(folder, hit);
+				return folder;
+			}
+
+			var extension = hit.Name.Contains('.', StringComparison.Ordinal) ? Path.GetExtension(hit.FullPath) : null;
+			if (FileExtensionHelpers.IsShortcutOrUrlFile(hit.Name))
+			{
+				var isUrl = FileExtensionHelpers.IsWebLinkFile(hit.Name);
+				var shortcut = new ShortcutItem(null)
+				{
+					PrimaryItemAttribute = StorageItemTypes.File,
+					FileExtension = extension ?? string.Empty,
+					IsHiddenItem = hit.IsHidden,
+					Opacity = opacity,
+					LoadFileIcon = false,
+					ItemNameRaw = hit.Name,
+					ItemType = isUrl ? Strings.ShortcutWebLinkFileType.GetLocalizedResource() : Strings.Shortcut.GetLocalizedResource(),
+					ItemPath = hit.FullPath,
+					FileSize = hit.Size.ToSizeString(),
+					FileSizeBytes = hit.Size,
+					IsUrl = isUrl,
+				};
+				ApplyEverythingDates(shortcut, hit);
+				return shortcut;
+			}
+
+			string? itemType = null;
+			if (extension is not null)
+				itemType = extension.Trim('.') + " " + itemType;
+
+			var file = new ListedItem(null)
+			{
+				PrimaryItemAttribute = StorageItemTypes.File,
+				ItemNameRaw = hit.Name,
+				ItemPath = hit.FullPath,
+				IsHiddenItem = hit.IsHidden,
+				LoadFileIcon = false,
+				FileExtension = extension,
+				ItemType = itemType,
+				Opacity = opacity,
+				FileSize = hit.Size.ToSizeString(),
+				FileSizeBytes = hit.Size,
+			};
+			ApplyEverythingDates(file, hit);
+			return file;
+		}
+
+		private static void ApplyEverythingDates(ListedItem item, EverythingSearchHit hit)
+		{
+			if (ToOffset(hit.DateModified) is { } modified)
+				item.ItemDateModifiedReal = modified;
+
+			if (ToOffset(hit.DateCreated) is { } created)
+				item.ItemDateCreatedReal = created;
+		}
+
+		private static DateTimeOffset? ToOffset(DateTime? value)
+		{
+			if (value is not { } date || date.Ticks <= 0)
+				return null;
+
+			if (date.Kind == DateTimeKind.Unspecified)
+				date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+
+			return new DateTimeOffset(date);
 		}
 
 		private async Task AddItemsForHomeAsync(IList<ListedItem> results, CancellationToken token)

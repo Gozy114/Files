@@ -113,6 +113,12 @@ namespace Files.App.Services.Settings
 			set => Set(value);
 		}
 
+		public bool UseEverything
+		{
+			get => Get(false);
+			set => Set(value);
+		}
+
 		public bool ShowFileExtensions
 		{
 			get => Get(true);
