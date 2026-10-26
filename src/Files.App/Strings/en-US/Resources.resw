@@ -1976,6 +1976,24 @@
   <data name="CalculateFolderSizes" xml:space="preserve">
     <value>Calculate folder sizes</value>
   </data>
+  <data name="UseEverything" xml:space="preserve">
+    <value>Use Everything for search and folder sizes</value>
+  </data>
+  <data name="UseEverythingDescription" xml:space="preserve">
+    <value>When voidtools Everything is running, Files uses it instead of Windows search. Folder sizes use Everything's index.</value>
+  </data>
+  <data name="EverythingUnavailableTitle" xml:space="preserve">
+    <value>Everything is not running</value>
+  </data>
+  <data name="EverythingUnavailableMessage" xml:space="preserve">
+    <value>Install Everything and leave it running. Search and folder sizes keep using Windows until then.</value>
+  </data>
+  <data name="DownloadEverything" xml:space="preserve">
+    <value>Download Everything</value>
+  </data>
+  <data name="EverythingIndexingHint" xml:space="preserve">
+    <value>In Everything, enable Index file size. On Everything 1.5, also enable Index folder size.</value>
+  </data>
   <data name="RecentFiles" xml:space="preserve">
     <value>Recent files</value>
   </data>

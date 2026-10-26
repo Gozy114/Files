@@ -10,7 +10,7 @@ Do not open a pull request against `files-community/Files`. After each task (or 
 
 - [x] **T3. Search integration.** From `FolderSearch.SearchAsync`, call Everything when the spec's gates pass (toggle, availability, not tag, not AQS, not a library). Map hits to `ListedItem` and raise `SearchTick` with the current `IReadOnlyList<ListedItem>` signature. On zero hits or any failure, fall through to the existing Windows search path. Leave tag, AQS, library, and natural-language behavior unchanged.
 
-- [ ] **T4. Settings toggle and UI.** `UseEverything` is already on `IFoldersSettingsService` and `FoldersSettingsService`, default `false`. Add the Folders page toggle, the unavailable InfoBar with the voidtools download link, and the indexing hint when Everything responds. Strings in `Strings/en-US/Resources.resw` only.
+- [x] **T4. Settings toggle and UI.** `UseEverything` is already on `IFoldersSettingsService` and `FoldersSettingsService`, default `false`. Add the Folders page toggle, the unavailable InfoBar with the voidtools download link, and the indexing hint when Everything responds. Strings in `Strings/en-US/Resources.resw` only.
 
 - [ ] **T5. windows-latest workflow.** Add `.github/workflows/fork-debug-build.yml` that, on `push` and `pull_request`, restores `Files.slnx` and builds `src/Files.App/Files.App.csproj` Debug x64 on `windows-latest` with packaging turned off. No `files-community` owner guard. No Everything functional test.
 

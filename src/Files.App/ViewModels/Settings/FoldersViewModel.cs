@@ -1,6 +1,9 @@
 // Copyright (c) Files Community
 // Licensed under the MIT License.
 
+using Files.App.Services.Search;
+using Windows.System;
+
 namespace Files.App.ViewModels.Settings
 {
 	public sealed partial class FoldersViewModel : ObservableObject
@@ -11,11 +14,19 @@ namespace Files.App.ViewModels.Settings
 		public Dictionary<SizeUnitTypes, string> SizeUnitsOptions { get; private set; } = [];
 		public Dictionary<SingleClickOpenMode, string> SingleClickOpenModeOptions { get; private set; } = [];
 
+		public IAsyncRelayCommand OpenEverythingDownloadCommand { get; }
+
+		private int everythingProbe;
+		private bool? everythingAvailable;
+
 		public FoldersViewModel()
 		{
+			OpenEverythingDownloadCommand = new AsyncRelayCommand(OpenEverythingDownloadAsync);
 			SelectedDeleteConfirmationPolicyIndex = (int)DeleteConfirmationPolicy;
 
 			_ = DetectNaturalLanguageSearchSupportAsync();
+			if (UserSettingsService.FoldersSettingsService.UseEverything)
+				_ = RefreshEverythingStatusAsync(++everythingProbe);
 
 			// Size unit format
 			SizeUnitsOptions.Add(SizeUnitTypes.BinaryUnits, Strings.Binary.GetLocalizedResource());
@@ -171,6 +182,61 @@ namespace Files.App.ViewModels.Settings
 				}
 			}
 		}
+
+		public bool UseEverything
+		{
+			get => UserSettingsService.FoldersSettingsService.UseEverything;
+			set
+			{
+				if (value == UserSettingsService.FoldersSettingsService.UseEverything)
+					return;
+
+				UserSettingsService.FoldersSettingsService.UseEverything = value;
+				OnPropertyChanged();
+				everythingProbe++;
+				if (value)
+				{
+					_ = RefreshEverythingStatusAsync(everythingProbe);
+				}
+				else
+				{
+					everythingAvailable = null;
+					NotifyEverythingStatus();
+				}
+			}
+		}
+
+		public bool ShowEverythingUnavailable => UseEverything && everythingAvailable == false;
+
+		public bool ShowEverythingIndexingHint => UseEverything && everythingAvailable == true;
+
+		private async Task RefreshEverythingStatusAsync(int probe)
+		{
+			var available = false;
+			try
+			{
+				available = await Ioc.Default.GetRequiredService<IEverythingService>().IsAvailableAsync();
+			}
+			catch (Exception)
+			{
+				available = false;
+			}
+
+			if (probe != everythingProbe || !UseEverything)
+				return;
+
+			everythingAvailable = available;
+			NotifyEverythingStatus();
+		}
+
+		private void NotifyEverythingStatus()
+		{
+			OnPropertyChanged(nameof(ShowEverythingUnavailable));
+			OnPropertyChanged(nameof(ShowEverythingIndexingHint));
+		}
+
+		private Task OpenEverythingDownloadAsync()
+			=> Launcher.LaunchUriAsync(new Uri(Constants.ExternalUrl.EverythingUrl)).AsTask();
 
 		public bool ScrollToPreviousFolderWhenNavigatingUp
 		{

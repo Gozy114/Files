@@ -211,6 +211,37 @@
 				</wctcontrols:SettingsExpander.ItemsHeader>
 			</wctcontrols:SettingsExpander>
 
+			<!--  Everything search and folder sizes  -->
+			<wctcontrols:SettingsCard
+				Description="{helpers:ResourceString Name=UseEverythingDescription}"
+				Header="{helpers:ResourceString Name=UseEverything}">
+				<wctcontrols:SettingsCard.HeaderIcon>
+					<FontIcon Glyph="&#xE721;" />
+				</wctcontrols:SettingsCard.HeaderIcon>
+				<ToggleSwitch
+					AutomationProperties.Name="{helpers:ResourceString Name=UseEverything}"
+					IsOn="{x:Bind ViewModel.UseEverything, Mode=TwoWay}" />
+			</wctcontrols:SettingsCard>
+			<InfoBar
+				IsClosable="False"
+				IsIconVisible="True"
+				IsOpen="{x:Bind ViewModel.ShowEverythingUnavailable, Mode=OneWay}"
+				Message="{helpers:ResourceString Name=EverythingUnavailableMessage}"
+				Severity="Warning"
+				Title="{helpers:ResourceString Name=EverythingUnavailableTitle}">
+				<InfoBar.ActionButton>
+					<HyperlinkButton
+						Command="{x:Bind ViewModel.OpenEverythingDownloadCommand}"
+						Content="{helpers:ResourceString Name=DownloadEverything}" />
+				</InfoBar.ActionButton>
+			</InfoBar>
+			<InfoBar
+				IsClosable="False"
+				IsIconVisible="True"
+				IsOpen="{x:Bind ViewModel.ShowEverythingIndexingHint, Mode=OneWay}"
+				Message="{helpers:ResourceString Name=EverythingIndexingHint}"
+				Severity="Informational" />
+
 			<!--  Natural language search  -->
 			<wctcontrols:SettingsCard Header="{helpers:ResourceString Name=SettingsNaturalLanguageSearch}" Visibility="{x:Bind ViewModel.IsNaturalLanguageSearchSupported, Mode=OneWay}">
 				<wctcontrols:SettingsCard.HeaderIcon>
